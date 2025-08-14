@@ -1,0 +1,87 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>静态多级菜单</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .menu-container { width: 300px; background: #f5f5f5; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .menu-item { cursor: pointer; padding: 12px 20px; border-bottom: 1px solid #e0e0e0; transition: all 0.3s; position: relative; }
+    .menu-item:hover { background: #e9e9e9; }
+    .menu-item.active { background: #42b983; color: white; }
+    .menu-item.has-children::after { content: ">"; position: absolute; right: 15px; transform: rotate(90deg); transition: transform 0.3s; }
+    .menu-item.has-children.expanded::after { transform: rotate(-90deg); }
+    .sub-menu { padding-left: 20px; background: #e9e9e9; max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+    .sub-menu.expanded { max-height: 1000px; }
+  </style>
+</head>
+<body>
+  <div class="menu-container">
+    <!-- 首页 -->
+    <div class="menu-item">首页</div>
+    
+    <!-- 产品中心 -->
+    <div class="menu-item has-children">产品中心</div>
+    <div class="sub-menu">
+      <div class="menu-item">产品分类1</div>
+      <div class="menu-item">产品分类2</div>
+      
+      <!-- 产品分类3 -->
+      <div class="menu-item has-children">产品分类3</div>
+      <div class="sub-menu">
+        <div class="menu-item">子产品1</div>
+        <div class="menu-item">子产品2</div>
+      </div>
+    </div>
+    
+    <!-- 关于我们 -->
+    <div class="menu-item has-children">关于我们</div>
+    <div class="sub-menu">
+      <div class="menu-item">公司简介</div>
+      <div class="menu-item">联系我们</div>
+    </div>
+    
+    <!-- 新闻动态 -->
+    <div class="menu-item">新闻动态</div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const menuItems = document.querySelectorAll('.menu-item.has-children');
+      
+      menuItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+          e.stopPropagation();
+          const subMenu = this.nextElementSibling;
+          const isExpanded = subMenu.classList.contains('expanded');
+          
+          // 关闭所有已展开的菜单
+          document.querySelectorAll('.sub-menu.expanded').forEach(menu => {
+            if (menu !== subMenu) {
+              menu.classList.remove('expanded');
+              menu.previousElementSibling.classList.remove('expanded');
+            }
+          });
+          
+          // 切换当前菜单状态
+          subMenu.classList.toggle('expanded', !isExpanded);
+          this.classList.toggle('expanded', !isExpanded);
+        });
+      });
+      
+      // 普通菜单项点击
+      document.querySelectorAll('.menu-item:not(.has-children)').forEach(item => {
+        item.addEventListener('click', function() {
+          document.querySelectorAll('.menu-item.active').forEach(el => {
+            el.classList.remove('active');
+          });
+          this.classList.add('active');
+        });
+      });
+    });
+  </script>
+</body>
+</html>
