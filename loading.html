@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue2 极简数据加载组件</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        header {
+            background: #3498db;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        .data-content {
+            background: #f9f9f9;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 280px;
+            position: relative;
+            border: 1px solid #eee;
+        }
+
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #3498db;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .user-info h3 {
+            color: #2c3e50;
+            margin-bottom: 4px;
+        }
+
+        .user-info p {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .loading-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(52, 152, 219, 0.2);
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            margin-top: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .progress-bar {
+            width: 80%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+
+        .progress {
+            height: 100%;
+            background: #3498db;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .skeleton {
+            background: #e0e0e0;
+            border-radius: 4px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .skeleton-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+        }
+
+        .skeleton-text {
+            height: 12px;
+            margin-bottom: 8px;
+        }
+
+        .skeleton-text.short {
+            width: 100px;
+        }
+
+        .skeleton-text.medium {
+            width: 150px;
+        }
+
+        .loading-type {
+            margin: 16px 0;
+            display: flex;
+            gap: 16px;
+        }
+
+        .loading-type label {
+            display: flex;
+            align-items: center;
+        }
+
+        .loading-type input {
+            margin-right: 6px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .data-title {
+            color: #2c3e50;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #3498db;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="container">
+            <header>
+                <h1>Vue2 数据加载组件</h1>
+            </header>
+
+            <div class="content">
+                <div class="controls">
+                    <button @click="loadData">
+                        加载用户数据
+                    </button>
+                </div>
+
+                <div class="loading-type">
+                    <label>
+                        <input type="radio" v-model="loadingType" value="spinner"> 旋转动画
+                    </label>
+                    <label>
+                        <input type="radio" v-model="loadingType" value="progress"> 进度条
+                    </label>
+                    <label>
+                        <input type="radio" v-model="loadingType" value="skeleton"> 骨架屏
+                    </label>
+                </div>
+
+                <div>
+                    <h3>加载时间: {{ loadingDuration }}ms</h3>
+                    <input type="range" min="500" max="3000" v-model="loadingDuration">
+                </div>
+
+                <div class="data-content">
+                    <div v-if="isLoading" class="loading-container">
+                        <div v-if="loadingType === 'spinner'">
+                            <div class="loading-spinner"></div>
+                            <div class="loading-text">加载中，请稍候...</div>
+                        </div>
+
+                        <div v-if="loadingType === 'progress'">
+                            <div class="loading-text">加载中 {{ progress }}%</div>
+                            <div class="progress-bar">
+                                <div class="progress" :style="{ width: progress + '%' }"></div>
+                            </div>
+                        </div>
+
+                        <div v-if="loadingType === 'skeleton'">
+                            <div class="loading-text">正在加载用户数据...</div>
+                            <div>
+                                <div class="user-card" v-for="n in 3" :key="n">
+                                    <div class="skeleton skeleton-avatar"></div>
+                                    <div class="user-info">
+                                        <div class="skeleton skeleton-text short"></div>
+                                        <div class="skeleton skeleton-text medium"></div>
+                                        <div class="skeleton skeleton-text short"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-else>
+                        <h3 class="data-title">用户数据</h3>
+                        <div class="user-card" v-for="user in users" :key="user.id">
+                            <div class="avatar">{{ user.name.charAt(0) }}</div>
+                            <div class="user-info">
+                                <h3>{{ user.name }}</h3>
+                                <p>{{ user.email }}</p>
+                                <p>{{ user.phone }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                isLoading: false,
+                loadingType: 'spinner',
+                progress: 0,
+                loadingDuration: 1500,
+                users: [
+                    { id: 1, name: '张三', email: 'zhangsan@example.com', phone: '13800138000' },
+                    { id: 2, name: '李四', email: 'lisi@example.com', phone: '13900139000' },
+                    { id: 3, name: '王五', email: 'wangwu@example.com', phone: '13700137000' },
+                    { id: 4, name: '赵六', email: 'zhaoliu@example.com', phone: '13600136000' }
+                ]
+            },
+            methods: {
+                loadData() {
+                    this.isLoading = true;
+                    this.progress = 0;
+
+                    // 模拟加载进度
+                    const interval = setInterval(() => {
+                        this.progress += 5;
+                        if (this.progress >= 100) {
+                            clearInterval(interval);
+                        }
+                    }, this.loadingDuration / 20);
+
+                    // 模拟API请求
+                    setTimeout(() => {
+                        this.isLoading = false;
+                    }, this.loadingDuration);
+                }
+            },
+            mounted() {
+                // 初始加载用户数据
+                this.loadData();
+            }
+        });
+    </script>
+</body>
+
+</html>
