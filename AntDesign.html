@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue + Ant Design 待办事项列表</title>
+    
+    <!-- 引入Vue和Ant Design库 -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ant-design-vue@1.7.8/dist/antd.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/ant-design-vue@1.7.8/dist/antd.min.js"></script> 
+    <style>
+        /* 全局样式重置 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* 主体样式 */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            color: #2c3e50;
+        }
+        
+        /* 容器样式 */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        /* 头部样式 */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+        }
+        
+        .header h1 {
+            font-weight: 600;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+        
+        /* 卡片样式 */
+        .todo-card {
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            background: white;
+        }
+        
+        /* 添加任务区域样式 */
+        .add-todo-container {
+            display: flex;
+            padding: 20px;
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        
+        .add-todo-input {
+            flex: 1;
+            margin-right: 15px;
+        }
+        
+        /* 统计区域样式 */
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 20px;
+            background: #f9f9f9;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1890ff;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        /* 任务列表样式 */
+        .todo-list {
+            padding: 0;
+        }
+        
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e8e8e8;
+            transition: background 0.3s;
+        }
+        
+        .todo-item:hover {
+            background: #f5f7fa;
+        }
+        
+        .todo-item:last-child {
+            border-bottom: none;
+        }
+        
+        .todo-content {
+            flex: 1;
+            margin-left: 15px;
+        }
+        
+        .todo-title {
+            font-size: 1rem;
+            margin-bottom: 5px;
+        }
+        
+        /* 已完成任务的样式 */
+        .completed .todo-title {
+            text-decoration: line-through;
+            color: #7f8c8d;
+        }
+        
+        .todo-time {
+            font-size: 0.8rem;
+            color: #a0a0a0;
+        }
+        
+        /* 空状态样式 */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
+        }
+        
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #e8e8e8;
+        }
+        
+        /* 页脚样式 */
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        /* 加载状态样式 */
+        .loading-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 576px) {
+            .add-todo-container {
+                flex-direction: column;
+            }
+            
+            .add-todo-input {
+                margin-right: 0;
+                margin-bottom: 15px;
+            }
+            
+            .stats {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <div class="header">
+                <h1>Vue + Ant Design 待办事项</h1>
+                <p>简洁高效的任务管理工具</p>
+            </div>
+            
+            <div class="todo-card">
+                <!-- 添加任务区域 -->
+                <div class="add-todo-container">
+                    <a-input 
+                        class="add-todo-input"
+                        placeholder="输入新任务..." 
+                        v-model="newTodo"
+                        @pressEnter="addTodo"
+                        size="large"
+                        :disabled="loading"
+                    ></a-input>
+                    <a-button 
+                        type="primary" 
+                        icon="plus" 
+                        @click="addTodo"
+                        size="large"
+                        :loading="loading"
+                        :disabled="loading"
+                    >添加任务</a-button>
+                </div>
+                
+                <!-- 统计信息区域 -->
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-number">{{ totalTodos }}</div>
+                        <div class="stat-label">总任务</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ completedTodos }}</div>
+                        <div class="stat-label">已完成</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ pendingTodos }}</div>
+                        <div class="stat-label">待完成</div>
+                    </div>
+                </div>
+                
+                <!-- 加载状态 -->
+                <div v-if="loading" class="loading-container">
+                    <a-spin size="large"></a-spin>
+                </div>
+                
+                <!-- 任务列表 -->
+                <div v-else-if="todos.length > 0">
+                    <div class="todo-list">
+                        <div v-for="item in todos" :key="item.id" class="todo-item" :class="{ completed: item.completed }">
+                            <a-checkbox :checked="item.completed" @change="e => toggleTodo(item.id, e.target.checked)"></a-checkbox>
+                            <div class="todo-content">
+                                <div class="todo-title">{{ item.title }}</div>
+                                <div class="todo-time">创建时间: {{ formatTime(item.createdAt) }}</div>
+                            </div>
+                            <a-button-group size="small">
+                                <a-button 
+                                    v-if="!item.completed"
+                                    type="primary" 
+                                    icon="check" 
+                                    @click="toggleTodo(item.id, true)"
+                                >完成</a-button>
+                                <a-button 
+                                    type="danger" 
+                                    icon="delete" 
+                                    @click="removeTodo(item.id)"
+                                >删除</a-button>
+                            </a-button-group>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 空状态提示 -->
+                <div v-else class="empty-state">
+                    <div class="empty-icon">
+                        <a-icon type="inbox" />
+                    </div>
+                    <h3>暂无任务</h3>
+                    <p>添加新任务开始您的计划</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 创建Vue实例
+        new Vue({
+            el: '#app',
+            data: {
+                newTodo: '', // 存储新任务的输入内容
+                todos: [], // 存储所有任务
+                storageEnabled: true, // 标识本地存储是否可用
+                loading: true // 控制加载状态
+            },
+            computed: {
+                // 计算总任务数
+                totalTodos() {
+                    return this.todos.length;
+                },
+                // 计算已完成任务数
+                completedTodos() {
+                    return this.todos.filter(todo => todo.completed).length;
+                },
+                // 计算待完成任务数
+                pendingTodos() {
+                    return this.todos.filter(todo => !todo.completed).length;
+                }
+            },
+            methods: {
+                // 添加新任务
+                addTodo() {
+                    if (!this.newTodo.trim()) {
+                        this.$message.warning('请输入任务内容');
+                        return;
+                    }
+                    
+                    const newTodo = {
+                        id: Date.now(), // 使用时间戳作为ID
+                        title: this.newTodo,
+                        completed: false,
+                        createdAt: new Date()
+                    };
+                    
+                    this.todos.unshift(newTodo); // 添加到数组开头
+                    this.newTodo = ''; // 清空输入框
+                    this.saveToLocalStorage(); // 保存到本地存储
+                    this.$message.success('任务添加成功'); // 显示成功消息
+                },
+                // 删除任务
+                removeTodo(id) {
+                    this.todos = this.todos.filter(todo => todo.id !== id);
+                    this.saveToLocalStorage();
+                    this.$message.info('任务已删除');
+                },
+                // 切换任务完成状态
+                toggleTodo(id, completed) {
+                    const todo = this.todos.find(todo => todo.id === id);
+                    if (todo) {
+                        todo.completed = completed;
+                        this.saveToLocalStorage();
+                        this.$message.success(completed ? '任务标记为已完成' : '任务标记为未完成');
+                    }
+                },
+                // 格式化时间显示
+                formatTime(date) {
+                    return new Date(date).toLocaleString();
+                },
+                // 保存数据到本地存储
+                saveToLocalStorage() {
+                    if (this.storageEnabled) {
+                        localStorage.setItem('vue-antd-todos', JSON.stringify(this.todos));
+                    }
+                },
+                // 从本地存储加载数据
+                loadFromLocalStorage() {
+                    try {
+                        const storedTodos = localStorage.getItem('vue-antd-todos');
+                        if (storedTodos) {
+                            this.todos = JSON.parse(storedTodos);
+                        }
+                    } catch (e) {
+                        this.storageEnabled = false;
+                        console.warn('本地存储不可用，数据将不会被保存');
+                    }
+                }
+            },
+            mounted() {
+                // 模拟加载延迟
+                setTimeout(() => {
+                    this.loadFromLocalStorage();
+                    
+                    // 如果没有任务，添加示例数据
+                    if (this.todos.length === 0) {
+                        this.todos = [
+                            {
+                                id: 1,
+                                title: '欢迎使用待办事项应用',
+                                completed: false,
+                                createdAt: new Date()
+                            },
+                            {
+                                id: 2,
+                                title: '点击复选框完成任务',
+                                completed: true,
+                                createdAt: new Date(Date.now() - 86400000)
+                            },
+                            {
+                                id: 3,
+                                title: '尝试添加新任务',
+                                completed: false,
+                                createdAt: new Date(Date.now() - 172800000)
+                            }
+                        ];
+                    }
+                    
+                    this.loading = false; // 关闭加载状态
+                }, 800);
+            }
+        });
+    </script>
+</body>
+</html>
